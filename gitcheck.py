@@ -2,18 +2,19 @@
 # -*- coding: utf-8 -*-
 
 # File: gitcheck.py
-# Version: 0.5
+# Version: 0.1
 # Description: a few functions to check for updates in a git repo and return a log of the changes.
 # Author: Patrick Beck (pbeck at yourse dot de) Copyright 2010
 # License: GPL3
 
 # git musst be installed to work with this script
 
-# You have to set the variable giturl and branch at the end of this script - then run it. It will clone the 
-# current revision and creates the file git_revision. When anybody updates the git it will differ from 
-# the content of the git_revision file and print all changes - and updates the git_revision file.
+# You have to set the variable repolist at the end of this script - then run it. It will clone the 
+# current revision and creates the file repos.csv. When anybody updates on of the git repositories it will differ from 
+# the content of repos.csv file and print all changes. The main() function generates a log list as output. See the example
+# at the end of this file. The main() function is written for the special job of returning updates of a repository.
 
-# You can test it manually when you edit the git_revision file to a number in the past
+# You can test it manually when you edit the repos.csv file to a number in the past
 
 import sys
 import os
@@ -25,24 +26,40 @@ class Gitcheck(object):
     def readfile(self, repo, branch):
         if os.path.isfile('repos.csv'):
             file = csv.reader(open('repos.csv', 'r'), delimiter=',') # file to save the revision number
-            print file
             for i in file:
                 if repo == i[0] and branch == i[1]:
                     return i[2]
-#                else:
-#                    revision = self.getserverrevision(repo, branch) # when no file exists, create a new one with the current revision from the server
-#                    self.writefile(repo, branch, revision) # and write it
-#                    print 'New repo in csv file added - %s on %s' % (repo, branch)
+
+            revision = self.getserverrevision(repo, branch) # when no file exists, create a new one with the current revision from the server
+            self.writefile(repo, branch, revision) # and write it
+            print 'New repo in csv file added - %s on %s' % (repo, branch)
         
         else:
             revision = self.getserverrevision(repo, branch) # when no file exists, create a new one with the current revision from the server
             self.writefile(repo, branch, revision) # and write it
             print 'New repo in csv file added - %s on %s' % (repo, branch)
         
-    def writefile(self, repo, branch, revision):
+    def writefile(self, repo, branch, revision): # for new entrys only and if the new file are created
         file = open('repos.csv', 'a')
         file.write('%s,%s,%s\n' % (repo,branch,revision)) 
         file.close
+
+    def changefile(self, repo, branch, revision): # to change the sha - update the file
+        file = open('repos.csv', 'r')
+        fileContent = []
+        while 1:
+            line = file.readline()
+            if '%s,%s' % (repo, branch) in line:
+                fileContent.append('%s,%s,%s\n' % (repo, branch, revision))
+            else:
+                fileContent.append(line)
+            if not line:
+                break
+        file = open('repos.csv', 'w')
+        for i in fileContent:
+            file.write(i)
+        file.close
+            
 
     def clone(self, repo):
         path = os.getcwd()
@@ -68,7 +85,8 @@ class Gitcheck(object):
 
     
     def switchbranch(self, branch):
-        command = 'git', 'checkout', '-b', branch, 'origin/' + branch
+#        command = 'git', 'checkout', '-b', branch, 'origin/' + branch
+        command = 'git', 'checkout', branch
         switchingbranch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         branchswitched = switchingbranch.communicate()
         if branchswitched[0]: # None when no error comes up
@@ -121,17 +139,19 @@ class Gitcheck(object):
                 print 'An Error occured - Error:', log[1]
             else:
                 logmessage = log[0].split('commit') # split the big string into several log messages
-                for log in logmessage[1:]: 
+                for log in logmessage[1:]:
                     entry = log.split('\n') # split the log message into his content
-                    update = [] # a empty list for one log [commit, author, date, logmessage, action]
-                    update.append(entry[0][1:]) # commit
+                    update = [] # a empty list for one log [repo, branch, author, date, commit, logmessage, action]
+                    update.append(self.getDir(repo)) # repo
+                    update.append(branch) # branch
                     update.append(entry[1][8:]) # author
                     update.append(entry[2][8:32]) # date
+                    update.append(entry[0][1:]) # commit
                     update.append(entry[4][4:]) # logmessage
-                    update.append(entry[6:]) # action
+                    update.append(entry[6:][0] + entry[6:][1]) # action
                     allupdates.append(update)
-                    self.writefile(repo, branch, revision) # write the server version to the file (for the next run of this script)
         self.switchback()
+#        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
         allupdates.reverse()
         return allupdates
 
@@ -147,7 +167,9 @@ class Gitcheck(object):
             server = self.getserverrevision(i[0],i[1])
 
             if last != server: # check if the repo has new commits
-                allupdates = self.getlog(last, server, i[0], i[1]) # get the output of the log
+                up = self.getlog(last, server, i[0], i[1]) # get the output of the log
+                for i in up:
+                    allupdates = '[%s in %s]: %s at %s on %s. Comment: %s Changes: %s' % (i[0], i[1], i[2], i[3], i[4], i[5], i[6])
                 updates.append(allupdates)
         return updates
                 
@@ -162,4 +184,5 @@ if __name__ == '__main__':
     if updates == []:
         print 'No Updates'
     else:
-        print updates
+        for i in updates:
+            print i
