@@ -148,7 +148,8 @@ class Gitcheck(object):
                     update.append(entry[2][8:32]) # date
                     update.append(entry[0][1:]) # commit
                     update.append(entry[4][4:]) # logmessage
-                    update.append(entry[6:][0] + entry[6:][1]) # action
+#                    print entry[6:][0]#.replace('\n','')#, entry[6:][1].replace('\n','')
+                    update.append(entry[6:])#[0] + entry[6:][1]) # action
                     allupdates.append(update)
         self.switchback()
 #        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
@@ -156,7 +157,7 @@ class Gitcheck(object):
         return allupdates
 
     def getDir(self, giturl):
-        gitdir = giturl.strip('/').split('/')[-1].strip('.git')
+        gitdir = giturl.strip('/').split('/')[-1].replace('.git', '')
         return gitdir
 
     def main(self, repolist):
@@ -169,8 +170,8 @@ class Gitcheck(object):
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
                 for i in up:
-                    allupdates = '[%s in %s]: %s at %s on %s. Comment: %s Changes: %s' % (i[0], i[1], i[2], i[3], i[4], i[5], i[6])
-                updates.append(allupdates)
+                    allupdates = '[%s / %s] %s at %s on %s. Comment: %s Changes: %s' % (i[0], i[1], i[2], i[3], i[4], i[5], i[6])
+                    updates.append(allupdates)
         return updates
                 
 if __name__ == '__main__':
@@ -178,6 +179,11 @@ if __name__ == '__main__':
     repolist = [
     ['http://git.gitorious.org/epydial/epydial.git','master'],
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
+    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
+    ['http://git.pyneo.org/browse/cgit/paroli','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
     ]
     check = Gitcheck()
     updates = check.main(repolist)
