@@ -23,16 +23,18 @@ import gitcheck
 class Gitbot(object):
     
     def connect(self, connection, event):
-        if irclib.is_channel(channel): # joins the channel when it exists
-            connection.join(channel)
+        for channel in channels:
+            if irclib.is_channel(channel): # joins the channel when it exists
+                connection.join(channel)
 
     def nicknameinuse(self, connection, event):
         connection.nick(connection.get_nickname() + "_") # when nickname in use add a _
 
     def sendmessage(self, connection, event):
-            for update in self.updates:
-                connection.privmsg(channel, update)
-                time.sleep(2) # kick protection :)
+            for channel in channels:
+                for update in self.updates:
+                    connection.privmsg(channel, update)
+                    time.sleep(2) # kick protection :)
    
             sys.exit(0) # we have finished
     
@@ -59,7 +61,7 @@ class Gitbot(object):
 if __name__ == '__main__':
     
     botname = 'pyneo-bot'
-    channel = '#pyneo-test'
+    channels = ['#pyneo-test','#pyneo-test2'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
     
@@ -73,4 +75,4 @@ if __name__ == '__main__':
     ]
 
     bot = Gitbot()
-    bot.main(botname, channel, network, port, repolist)
+    bot.main(botname, channels, network, port, repolist)
