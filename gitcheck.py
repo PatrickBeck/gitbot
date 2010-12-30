@@ -20,6 +20,7 @@ import sys
 import os
 import subprocess
 import csv
+import shutil
 
 class Gitcheck(object):
 
@@ -63,13 +64,26 @@ class Gitcheck(object):
 
     def cleanFile(self, repolist):
         file = open(self.data, 'r')
-        content = file.readlines()
-        new_list = []
-        for repo in repolist:
-            if repo[0] + ',' + repo[1] in content:
-                new_list.append(content)
-        print new_list
+        content = file.readlines() # get the whole content of repos.csv
+        new_list = [] 
+        for i in content:
+            for repo in repolist:
+                if repo[0] + ',' + repo[1] in i: # when repo of repolist is in repos.csv
+                    new_list.append(i) # add it to the list
+        
+        file = open(self.data, 'w')
+        for i in new_list:
+            i = i.split(',') # split the string into - repo, branch and sha
+            file.write('%s,%s,%s' % (i[0],i[1],i[2])) # add only the current repos of repolist in repos.csv - delete the other
+        file.close
 
+    def cleanDir(self, repo):
+        gitdir = self.getDir(repo)
+        if os.path.isdir(gitdir)
+            shutil.rmtree(gitdir)
+            print 'Repo - %s - deleted' % (gitdir)
+
+            
     def clone(self, repo):
         gitdir = self.getDir(repo)
         if os.path.isdir(gitdir): # check if the dir exists
@@ -190,10 +204,10 @@ class Gitcheck(object):
 if __name__ == '__main__':
     
     repolist = [
-    ['http://git.gitorious.org/epydial/epydial.git','master'],
-#    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
-    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
-    ['http://git.pyneo.org/browse/cgit/paroli','master'],
+#    ['http://git.gitorious.org/epydial/epydial.git','master'],
+    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
+#    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
+#    ['http://git.pyneo.org/browse/cgit/paroli','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
