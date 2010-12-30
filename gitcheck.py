@@ -77,11 +77,21 @@ class Gitcheck(object):
             file.write('%s,%s,%s' % (i[0],i[1],i[2])) # add only the current repos of repolist in repos.csv - delete the other
         file.close
 
+        for i in content:
+            if i not in new_list:
+                i = i.split(',') # get the repo, branch and sha out of the string
+                for entry in new_list:
+                    if i[0] not in entry.split(',')[0]: # test if a repo with more than one branch is added - don't delete it
+                        gitdir = self.getDir(i[0])
+                        self.cleanDir(gitdir) # when repo list clear, delete the directorys to the entrys
+                    else:
+                        print 'Repo - %s/%s - deleted' % (i[0],i[1])
+
     def cleanDir(self, repo):
         gitdir = self.getDir(repo)
-        if os.path.isdir(gitdir)
-            shutil.rmtree(gitdir)
-            print 'Repo - %s - deleted' % (gitdir)
+        if os.path.isdir(gitdir):
+            shutil.rmtree(gitdir) # delete the directory of the repository
+            print 'Directory and Repo - %s - deleted' % (gitdir)
 
             
     def clone(self, repo):
@@ -106,12 +116,11 @@ class Gitcheck(object):
 
     
     def switchbranch(self, branch):
-#        command = 'git', 'checkout', '-b', branch, 'origin/' + branch
         command = 'git', 'checkout', branch
         switchingbranch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         branchswitched = switchingbranch.communicate()
         if branchswitched[0]: # None when no error comes up
-            print 'Can\'t switch branch - Error:', branchswitched[0]
+            print '%s - Branch to %s switched' % (branchswitched[0], branch)
         else:
             print 'branch to %s switched' % (branch)
 		
@@ -204,10 +213,10 @@ class Gitcheck(object):
 if __name__ == '__main__':
     
     repolist = [
-#    ['http://git.gitorious.org/epydial/epydial.git','master'],
+    ['http://git.gitorious.org/epydial/epydial.git','master'],
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
 #    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
-#    ['http://git.pyneo.org/browse/cgit/paroli','master'],
+    ['http://git.pyneo.org/browse/cgit/paroli','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
