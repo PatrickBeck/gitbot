@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*- 
 
 # File: gitbot.py
-# Version: 0.5
-# Description: Prints updates in the svn and git repository to irc
-# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2009
+# Version: 1.0
+# Description: Prints updates of git repositorys to irc
+# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2010
 # License: GPL3
 
 # gitbot.py uses the gitcheck.py library to generate the messages
 
 # You need python-irclib, gitcheck.py library and git to run this script
 # Then you have only to set the right git-repos and your parameters for bot, 
-# channel, network and port.
+# channel, network and port at the end of this file
 
 # This script is intended for run as a cronjob entry every few minutes / hours.
 
@@ -44,6 +44,7 @@ class Gitbot(object):
         git = gitcheck.Gitcheck()
         self.updates = git.main(repolist)
         if self.updates == []: # when no updates available
+            print 'No updates'
             sys.exit(0)
         
         irc = irclib.IRC()
@@ -61,13 +62,14 @@ class Gitbot(object):
 if __name__ == '__main__':
     
     botname = 'pyneo-bot'
-    channels = ['#pyneo-test','#pyneo-test2'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
+    channels = ['#pyneo.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
     
-    repolist = [
+    repolist = [ # a list with all controlled repositorys
     ['http://git.gitorious.org/epydial/epydial.git','master'],
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
+    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
     ['http://git.pyneo.org/browse/cgit/paroli','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],

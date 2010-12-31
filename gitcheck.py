@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # File: gitcheck.py
-# Version: 0.1
+# Version: 1.0
 # Description: a few functions to check for updates in a git repo and return a log of the changes.
 # Author: Patrick Beck (pbeck at yourse dot de) Copyright 2010
 # License: GPL3
@@ -14,7 +14,7 @@
 # the content of repos.csv file and print all changes. The main() function generates a log list as output. See the example
 # at the end of this file. The main() function is written for the special job of returning updates of a repository.
 
-# You can test it manually when you edit the repos.csv file to a number in the past
+# You can test it manually when you edit the repos.csv file to a SHA-1 number in the past
 
 import sys
 import os
@@ -28,7 +28,7 @@ class Gitcheck(object):
         if os.path.isfile(self.data):
             file = csv.reader(open(self.data, 'r'), delimiter=',') # file to save the revision number
             for i in file:
-                if repo == i[0] and branch == i[1]:
+                if repo == i[0] and branch == i[1]: # when repo and branch identically return the SHA-1
                     return i[2]
 
             revision = self.getserverrevision(repo, branch) # when no file exists, create a new one with the current revision from the server
@@ -45,16 +45,16 @@ class Gitcheck(object):
         file.write('%s,%s,%s\n' % (repo,branch,revision)) 
         file.close
 
-    def changefile(self, repo, branch, revision): # to change the sha - update the file
+    def changefile(self, repo, branch, revision): # to change the sha - update the file / rewrite it
         file = open(self.data, 'r')
         fileContent = []
         while 1:
             line = file.readline()
-            if '%s,%s' % (repo, branch) in line:
+            if '%s,%s' % (repo, branch) in line: # when repo,branch found update the revision
                 fileContent.append('%s,%s,%s\n' % (repo, branch, revision))
             else:
-                fileContent.append(line)
-            if not line:
+                fileContent.append(line) # other should be added directly
+            if not line: # end of lines in csv file
                 break
         file = open(self.data, 'w')
         for i in fileContent:
@@ -65,28 +65,37 @@ class Gitcheck(object):
     def cleanFile(self, repolist):
         file = open(self.data, 'r')
         content = file.readlines() # get the whole content of repos.csv
+        
+        if repolist == []: # the part for deleting all content (csv file and old dirs), when no repo is set.
+            for i in content:
+                gitdir = self.getDir(i.split(',')[0])
+                self.cleanDir(gitdir) # remove the dirs which are listed in the csv file
+            os.remove(self.data) # delete csv file
+            return
+
         new_list = [] 
         for i in content:
             for repo in repolist:
-                if repo[0] + ',' + repo[1] in i: # when repo of repolist is in repos.csv
+                if repo[0] + ',' + repo[1] in i: # when repo of repolist is in csv file
                     new_list.append(i) # add it to the list
         
         file = open(self.data, 'w')
         for i in new_list:
             i = i.split(',') # split the string into - repo, branch and sha
-            file.write('%s,%s,%s' % (i[0],i[1],i[2])) # add only the current repos of repolist in repos.csv - delete the other
+            file.write('%s,%s,%s' % (i[0],i[1],i[2])) # add only the current repos of repolist in csv file - delete the other
         file.close
 
         for i in content:
             if i not in new_list:
                 i = i.split(',') # get the repo, branch and sha out of the string
+                gitdir = self.getDir(i[0])
                 for entry in new_list:
                     if i[0] not in entry.split(',')[0]: # test if a repo with more than one branch is added - don't delete it
-                        gitdir = self.getDir(i[0])
                         self.cleanDir(gitdir) # when repo list clear, delete the directorys to the entrys
                     else:
                         print 'Repo - %s/%s - deleted' % (i[0],i[1])
-
+        
+                
     def cleanDir(self, repo):
         gitdir = self.getDir(repo)
         if os.path.isdir(gitdir):
@@ -168,11 +177,10 @@ class Gitcheck(object):
                     update.append(entry[2][8:32]) # date
                     update.append(entry[0][1:]) # commit
                     update.append(entry[4][4:]) # logmessage
-#                    print entry[6:][0]#.replace('\n','')#, entry[6:][1].replace('\n','')
-                    update.append(entry[6:])#[0] + entry[6:][1]) # action
+#                    update.append(entry[6:]) # action # to much output
                     allupdates.append(update)
         self.switchback()
-#        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
+        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
         allupdates.reverse()
         return allupdates
 
@@ -194,32 +202,38 @@ class Gitcheck(object):
         return scriptDir
 
     def main(self, repolist):
+        self.data = 'repos.csv' # file for saving the data
+        
+        if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
+            print 'No Repositorys added'
+            self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
+            sys.exit(0)
+
         os.chdir(self.absolutePath()) # get into the right directory
-        self.data = 'repos.csv' # saves the repo + branch + the last sha
         updates = []
         for i in repolist:
-            self.clone(i[0])
-            last = self.getlastrevision(i[0],i[1])
-            server = self.getserverrevision(i[0],i[1])
+            self.clone(i[0]) # if not cloned, clone it
+            last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
+            server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
 
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
                 for i in up:
-                    allupdates = '[%s / %s] %s at %s on %s. Comment: %s Changes: %s' % (i[0], i[1], i[2], i[3], i[4], i[5], i[6])
+                    allupdates = '[%s / %s] %s at %s on %s. Comment: %s' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                     updates.append(allupdates)
-        self.cleanFile(repolist)
+        self.cleanFile(repolist) # clean the directory or csv file
         return updates
                 
-if __name__ == '__main__':
+if __name__ == '__main__': # function will only be called when you start the script directly
     
     repolist = [
     ['http://git.gitorious.org/epydial/epydial.git','master'],
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
-#    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
+    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
     ['http://git.pyneo.org/browse/cgit/paroli','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
     ]
     check = Gitcheck()
     updates = check.main(repolist)
