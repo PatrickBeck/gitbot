@@ -139,7 +139,7 @@ class Gitcheck(object):
     def getserverrevision(self, repo, branch):
         self.switchgitdir(repo)
         self.switchbranch(branch)
-        command = 'git', 'log', '-1'
+        command = 'git', 'log', 'origin', '-1'
         getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         log = getlog.communicate()
         self.switchback() # change back to the directory above
