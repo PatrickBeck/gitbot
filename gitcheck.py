@@ -115,6 +115,18 @@ class Gitcheck(object):
             else:
                 print 'Repository %s cloned' % (repo)
 
+    def fetch(self, repo):
+        self.switchgitdir(repo)
+        command = 'git', 'fetch'
+        getfetch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        fetch = getfetch.communicate()
+        if fetch[1]: # None when no error comes up
+            print 'Can\'t fetch the git repository - Error:', fetch[1]
+        else:
+            print 'origin repository for %s updated' % (repo)
+        self.switchback() # change back to the directory above - important to write the csv file
+
+
     def switchgitdir(self, repo):
         repodir = self.getDir(repo)
         if os.path.isdir(repodir): # exists the dir?
@@ -213,6 +225,7 @@ class Gitcheck(object):
         updates = []
         for i in repolist:
             self.clone(i[0]) # if not cloned, clone it
+            self.fetch(i[0]) # update the origin remote
             last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
             server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
 
