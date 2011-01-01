@@ -65,7 +65,6 @@ class Gitcheck(object):
     def cleanFile(self, repolist):
         file = open(self.data, 'r')
         content = file.readlines() # get the whole content of repos.csv
-        
         if repolist == []: # the part for deleting all content (csv file and old dirs), when no repo is set.
             for i in content:
                 gitdir = self.getDir(i.split(',')[0])
@@ -84,7 +83,7 @@ class Gitcheck(object):
             i = i.split(',') # split the string into - repo, branch and sha
             file.write('%s,%s,%s' % (i[0],i[1],i[2])) # add only the current repos of repolist in csv file - delete the other
         file.close
-
+        
         for i in content:
             if i not in new_list:
                 i = i.split(',') # get the repo, branch and sha out of the string
@@ -173,9 +172,9 @@ class Gitcheck(object):
                     update = [] # a empty list for one log [repo, branch, author, date, commit, logmessage, action]
                     update.append(self.getDir(repo)) # repo
                     update.append(branch) # branch
-                    update.append(entry[1][8:]) # author
+                    update.append(entry[1][8:].split(' <')[0]) # author (get only the name without email)
                     update.append(entry[2][8:32]) # date
-                    update.append(entry[0][1:]) # commit
+                    update.append(entry[0][1:-30] + '...') # commit (only the first ten characters)
                     update.append(entry[4][4:]) # logmessage
 #                    update.append(entry[6:]) # action # to much output
                     allupdates.append(update)
@@ -202,14 +201,15 @@ class Gitcheck(object):
         return scriptDir
 
     def main(self, repolist):
+        os.chdir(self.absolutePath()) # get into the right directory
         self.data = 'repos.csv' # file for saving the data
         
-        if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
-            print 'No Repositorys added'
-            self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
-            sys.exit(0)
-
-        os.chdir(self.absolutePath()) # get into the right directory
+        if os.path.isfile(self.data):
+            if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
+                print 'No Repositorys added'
+                self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
+                sys.exit(0)
+        
         updates = []
         for i in repolist:
             self.clone(i[0]) # if not cloned, clone it
@@ -219,14 +219,16 @@ class Gitcheck(object):
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
                 for i in up:
-                    allupdates = '[%s / %s] %s at %s on %s. Comment: %s' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
+                    allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                     updates.append(allupdates)
-        self.cleanFile(repolist) # clean the directory or csv file
+        
+        if os.path.isfile(self.data): # have to be called after the new written csv file
+            self.cleanFile(repolist) # clean the directory or csv file
         return updates
                 
 if __name__ == '__main__': # function will only be called when you start the script directly
     
-    repolist = [
+    repolist = [ # a list with alle controlled repos
     ['http://git.gitorious.org/epydial/epydial.git','master'],
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
     ['http://git.gitorious.org/epydial/epydial-new.git','master'],
