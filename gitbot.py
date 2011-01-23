@@ -39,7 +39,7 @@ class Gitbot(object):
             sys.exit(0) # we have finished
     
 
-    def main(self, botname, channel, network, port, repolist):
+    def main(self, botname, channel, network, port, username, repolist):
     
         git = gitcheck.Gitcheck()
         self.updates = git.main(repolist)
@@ -49,7 +49,7 @@ class Gitbot(object):
         
         irc = irclib.IRC()
         try:
-            c = irc.server().connect(network, port, botname)
+            c = irc.server().connect(network, port, botname, username=username)
         except irclib.ServerConnectionError, x:
             print x
             sys.exit(1)
@@ -61,7 +61,8 @@ class Gitbot(object):
 
 if __name__ == '__main__':
     
-    botname = 'pyneo-git'
+    botname = '__pyneo'
+    username = 'pyneo' # only alphanumerical characters
     channels = ['#pyneo.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
@@ -86,4 +87,4 @@ if __name__ == '__main__':
     ]
 
     bot = Gitbot()
-    bot.main(botname, channels, network, port, repolist)
+    bot.main(botname, channels, network, port, username, repolist)
