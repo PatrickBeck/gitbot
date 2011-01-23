@@ -61,7 +61,7 @@ class Gitbot(object):
 
 if __name__ == '__main__':
     
-    botname = 'pyneo-bot'
+    botname = 'pyneo-git'
     channels = ['#pyneo.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
@@ -72,6 +72,15 @@ if __name__ == '__main__':
     ['http://git.gitorious.org/epydial/epydial-new.git','master'],
     ['http://git.pyneo.org/browse/cgit/paroli','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo','master'],
+    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
+    ['http://git.pyneo.org/browse/cgit/enlua','master'],
+    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
+    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
+#    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
+    ['http://git.pyneo.org/browse/cgit/robots','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
     ]
