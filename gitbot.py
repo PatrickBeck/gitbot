@@ -15,9 +15,10 @@
 
 # This script is intended for run as a cronjob entry every few minutes / hours.
 
-import irclib
 import sys
 import time
+import sqlite3
+import irclib
 import gitcheck
 
 class Gitbot(object):
@@ -38,15 +39,77 @@ class Gitbot(object):
    
             sys.exit(0) # we have finished
     
+    def learnfact(self, buzzword, description, connection, event):
+#        self.cur.execute('SELECT buzzword, description FROM facts')
+#        for row in self.cur:
+#            if row[0] == buzzword: 
+#                content = (buzzword, description)
+#                add = 'UPDATE facts SET VALUES (?, ?)'
+#                self.cur.execute(add, content)
+#                self.con.commit()
+#                self.sendChannel('Factoid %s updated' % (buzzword), connection, event)
+             
+#            else:
+                content = (buzzword, description)
+                add = 'INSERT INTO facts VALUES (?, ?)'
+                self.cur.execute(add, content)
+                self.con.commit()
+                self.sendChannel('Factoid %s saved' % (buzzword), connection, event)
 
-    def main(self, botname, channel, network, port, username, repolist):
+    def deletefact(self, buzzword, connection, event):
+        pass
+
+    def outputfact(self, buzzword, connection, event, user=None):
+        self.cur.execute('SELECT buzzword, description FROM facts')
+        for row in self.cur:
+            if row[0] == buzzword: 
+                if user == None:
+                    text ='%s %s' % (row[0], row[1])
+                else:
+                    text = '%s, %s %s' % (user, row[0], row[1])
+                self.sendChannel(text, connection, event)
+   
+    def listfacts(self):
+        pass
+
+    def sendChannel(self, text, connection, event):
+        connection.privmsg(event.target(), text)
+
+    def pubmsg(self, connection, event):
+        msg = event.arguments()[0]
+        if msg.startswith('!'):
+            word = msg.strip('!').split()
+            if len(word) > 2:
+                buzzword = word[0]
+                descriptions = ' '.join(word[1:])
+                print descriptions
+                self.learnfact(buzzword, descriptions, connection, event)
+        if msg.startswith('?'):
+            word = msg.strip('?').split()
+            buzzword = word[0]
+            if len(word) == 2:
+                user = word[1]
+                self.outputfact(buzzword, connection, event, user)
+            else:
+                self.outputfact(buzzword, connection, event)
+            
+                 
+    def main(self, botname, channel, network, port, username, repolist, factsdb):
     
-        git = gitcheck.Gitcheck()
-        self.updates = git.main(repolist)
-        if self.updates == []: # when no updates available
-            print 'No updates'
-            sys.exit(0)
-        
+#        git = gitcheck.Gitcheck()
+#        self.updates = git.main(repolist)
+ #       if self.updates == []: # when no updates available
+ #           print 'No updates'
+ #           sys.exit(0)
+
+        self.con = sqlite3.connect(factsdb)
+        self.con.text_factory = str
+        self.cur = self.con.cursor()
+        try:
+            self.cur.execute('''CREATE TABLE facts(buzzword TEXT, description TEXT)''')
+        except:
+            print 'Database already exists'
+
         irc = irclib.IRC()
         try:
             c = irc.server().connect(network, port, botname, username=username)
@@ -55,17 +118,21 @@ class Gitbot(object):
             sys.exit(1)
         
         c.add_global_handler("welcome", self.connect)
-        c.add_global_handler("join", self.sendmessage)
+#        c.add_global_handler("join", self.sendmessage)
         c.add_global_handler('nicknameinuse', self.nicknameinuse)
+        c.add_global_handler('pubmsg', self.pubmsg)
         irc.process_forever()
 
 if __name__ == '__main__':
     
     botname = '__pyneo'
     username = 'pyneo' # only alphanumerical characters
-    channels = ['#pyneo.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
+    channels = ['#pyneo-test.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
+
+    dbname = "facts.db" # database for saving the facts 
+    factsdb = gitcheck.Gitcheck().absolutePath() + dbname # get the absolutepath for the database 
     
     repolist = [ # a list with all controlled repositorys
     ['http://git.gitorious.org/epydial/epydial.git','master'],
@@ -87,4 +154,4 @@ if __name__ == '__main__':
     ]
 
     bot = Gitbot()
-    bot.main(botname, channels, network, port, username, repolist)
+    bot.main(botname, channels, network, port, username, repolist, factsdb)
