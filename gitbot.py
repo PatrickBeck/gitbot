@@ -40,24 +40,31 @@ class Gitbot(object):
             sys.exit(0) # we have finished
     
     def learnfact(self, buzzword, description, connection, event):
-#        self.cur.execute('SELECT buzzword, description FROM facts')
-#        for row in self.cur:
-#            if row[0] == buzzword: 
-#                content = (buzzword, description)
-#                add = 'UPDATE facts SET VALUES (?, ?)'
-#                self.cur.execute(add, content)
-#                self.con.commit()
-#                self.sendChannel('Factoid %s updated' % (buzzword), connection, event)
-             
-#            else:
-                content = (buzzword, description)
-                add = 'INSERT INTO facts VALUES (?, ?)'
+        self.cur.execute('SELECT buzzword, description FROM facts')
+        for row in self.cur:
+            if row[0] == buzzword: 
+                content = (description, buzzword)
+                add = 'UPDATE facts SET description = ?, buzzword = ?'
                 self.cur.execute(add, content)
                 self.con.commit()
-                self.sendChannel('Factoid %s saved' % (buzzword), connection, event)
+                self.sendChannel('Factoid %s updated' % (buzzword), connection, event)
+                return
+
+        content = (buzzword, description)
+        add = 'INSERT INTO facts VALUES (?, ?)'
+        self.cur.execute(add, content)
+        self.con.commit()
+        self.sendChannel('Factoid %s saved' % (buzzword), connection, event)
 
     def deletefact(self, buzzword, connection, event):
-        pass
+        self.cur.execute('SELECT buzzword, description FROM facts')
+        for row in self.cur:
+            if row[0] == buzzword:
+                content = (row[0], row[1])
+                delete = 'DELETE FROM facts where buzzword = ? and description = ?'
+                self.cur.execute(delete, content)
+                self.con.commit()
+                self.sendChannel('Factoid %s deleted' % (buzzword), connection, event)
 
     def outputfact(self, buzzword, connection, event, user=None):
         self.cur.execute('SELECT buzzword, description FROM facts')
@@ -69,21 +76,38 @@ class Gitbot(object):
                     text = '%s, %s %s' % (user, row[0], row[1])
                 self.sendChannel(text, connection, event)
    
-    def listfacts(self):
-        pass
+    def listfacts(self, connection, event):
+        self.cur.execute('SELECT buzzword FROM facts')
+        words = []
+        for row in self.cur:
+            words.append(row[0])
+        text = 'Saved facts - '+', '.join(words)
+        self.sendChannel(text, connection, event)
+            
 
     def sendChannel(self, text, connection, event):
         connection.privmsg(event.target(), text)
 
     def pubmsg(self, connection, event):
         msg = event.arguments()[0]
-        if msg.startswith('!'):
+
+        if msg.startswith('!facts'):
+            self.listfacts(connection, event)
+
+        elif msg.startswith('!delete '): # space important
+            word = msg.strip('!').split() # space important
+            if len(word) == 2:
+                buzzword = word[1]
+                self.deletefact(buzzword, connection, event)
+
+        elif msg.startswith('!'):
             word = msg.strip('!').split()
-            if len(word) > 2:
+            if len(word) > 1:
                 buzzword = word[0]
                 descriptions = ' '.join(word[1:])
                 print descriptions
                 self.learnfact(buzzword, descriptions, connection, event)
+        
         if msg.startswith('?'):
             word = msg.strip('?').split()
             buzzword = word[0]
