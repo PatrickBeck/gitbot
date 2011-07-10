@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*- 
 
 # File: gitbot.py
-# Version: 1.0.1
+# Version: 1.1.0
 # Description: Prints updates of git repositorys to irc
-# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2010
+# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
 # License: GPL3
 
 # gitbot.py uses the gitcheck.py library to generate the messages
@@ -13,7 +13,7 @@
 # Then you have only to set the right git-repos and your parameters for bot, 
 # channel, network and port at the end of this file
 
-# This script is intended for run as a cronjob entry every few minutes / hours.
+# This script is intended for run as a background process the whole time - when you only want a script use the Version 1.0.1.
 
 import sys
 import time
@@ -115,7 +115,7 @@ class Gitbot(object):
 
     def gitupdate(self, git, repolist, connection, event):#, connection, event):#i, git, repolist):
         minute = time.strftime("%M%S",time.gmtime())
-        if minute in ('1500','1500','3000','4500'):
+        if minute in ('0000','1500','3000','4500'):
             time.sleep(1)
             self.updates = git.main(repolist)
             self.sendmessage(connection, event)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     
     botname = '__pyneo'
     username = 'pyneo' # only alphanumerical characters
-    channels = ['#pyneo-test.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
+    channels = ['#pyneo.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
 
@@ -172,6 +172,16 @@ if __name__ == '__main__':
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
     ['http://git.gitorious.org/epydial/epydial-new.git','master'],
     ['http://git.pyneo.org/browse/cgit/paroli','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pyaudiod','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
+    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
+    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
+    ['http://git.pyneo.org/browse/cgit/gllin','master'],
+    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo','master'],
     ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
@@ -180,7 +190,7 @@ if __name__ == '__main__':
     ['http://git.pyneo.org/browse/cgit/enlua','master'],
     ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
     ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
-#    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
+    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
     ['http://git.pyneo.org/browse/cgit/robots','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
     ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
