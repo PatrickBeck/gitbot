@@ -31,14 +31,6 @@ class Gitbot(object):
     def nicknameinuse(self, connection, event):
         connection.nick(connection.get_nickname() + "_") # when nickname in use add a _
 
-    def sendmessage(self, connection, event):
-            for channel in channels:
-                for update in self.updates:
-                    connection.privmsg(channel, update)
-                    time.sleep(2) # kick protection :)
-   
-            sys.exit(0) # we have finished
-    
     def learnfact(self, buzzword, description, connection, event):
         self.cur.execute('SELECT buzzword, description FROM facts')
         for row in self.cur:
@@ -90,18 +82,22 @@ class Gitbot(object):
 
     def pubmsg(self, connection, event):
         msg = event.arguments()[0]
-
+        
         if msg.startswith('!facts'):
             self.listfacts(connection, event)
+        
+        elif msg.startswith('!help'):
+            text = "Example for learning: !pyneo is a mobile framework, Example for read: ?pyneo, Example with username: ?pyneo PBeck - !facts gives a overview."
+            self.sendChannel(text, connection, event)
 
         elif msg.startswith('!delete '): # space important
-            word = msg.strip('!').split() # space important
+            word = msg.lstrip('!').split() # space important
             if len(word) == 2:
                 buzzword = word[1]
                 self.deletefact(buzzword, connection, event)
 
         elif msg.startswith('!'):
-            word = msg.strip('!').split()
+            word = msg.lstrip('!').split()
             if len(word) > 1:
                 buzzword = word[0]
                 descriptions = ' '.join(word[1:])
@@ -109,22 +105,31 @@ class Gitbot(object):
                 self.learnfact(buzzword, descriptions, connection, event)
         
         if msg.startswith('?'):
-            word = msg.strip('?').split()
+            word = msg.lstrip('?').split()
             buzzword = word[0]
             if len(word) == 2:
                 user = word[1]
                 self.outputfact(buzzword, connection, event, user)
             else:
                 self.outputfact(buzzword, connection, event)
-            
-                 
+
+    def gitupdate(self, git, repolist, connection, event):#, connection, event):#i, git, repolist):
+        minute = time.strftime("%M%S",time.gmtime())
+        if minute in ('1500','1500','3000','4500'):
+            time.sleep(1)
+            self.updates = git.main(repolist)
+            self.sendmessage(connection, event)
+
+    def sendmessage(self, connection, event):
+            for channel in channels:
+                for update in self.updates:
+                    connection.privmsg(channel, update)
+                    time.sleep(2) # kick protection :)
+   
     def main(self, botname, channel, network, port, username, repolist, factsdb):
     
-#        git = gitcheck.Gitcheck()
-#        self.updates = git.main(repolist)
- #       if self.updates == []: # when no updates available
- #           print 'No updates'
- #           sys.exit(0)
+        git = gitcheck.Gitcheck()
+        updates = ()
 
         self.con = sqlite3.connect(factsdb)
         self.con.text_factory = str
@@ -142,10 +147,14 @@ class Gitbot(object):
             sys.exit(1)
         
         c.add_global_handler("welcome", self.connect)
-#        c.add_global_handler("join", self.sendmessage)
         c.add_global_handler('nicknameinuse', self.nicknameinuse)
         c.add_global_handler('pubmsg', self.pubmsg)
-        irc.process_forever()
+        
+        while 1:
+            self.gitupdate(git, repolist, c, c)
+            irc.process_once()
+            time.sleep(0.02)
+
 
 if __name__ == '__main__':
     
