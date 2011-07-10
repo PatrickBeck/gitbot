@@ -112,6 +112,7 @@ class Gitcheck(object):
             clone = getclone.communicate() # interact with process
             if clone[1]: # it's None when no error comes up
                 print 'Can\'t clone the repository - Error:', clone[1]
+                return False # not possible to clone repo
             else:
                 print 'Repository %s cloned' % (repo)
 
@@ -122,6 +123,7 @@ class Gitcheck(object):
         fetch = getfetch.communicate()
         if fetch[1]: # None when no error comes up
             print 'Can\'t fetch the git repository - Error:', fetch[1]
+            return False # not possible to update the repo
         else:
             print 'origin repository for %s updated' % (repo)
         self.switchback() # change back to the directory above - important to write the csv file
@@ -224,8 +226,9 @@ class Gitcheck(object):
         
         updates = []
         for i in repolist:
-            self.clone(i[0]) # if not cloned, clone it
-            self.fetch(i[0]) # update the origin remote
+            if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
+                continue # when the repo is not reachable, skip the defect one
+            
             last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
             server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
 
@@ -243,6 +246,7 @@ if __name__ == '__main__': # function will only be called when you start the scr
     
     repolist = [ # a list with alle controlled repos
     ['http://git.gitorious.org/epydial/epydial.git','master'],
+    ['http://wasweißich.git','master'],
     ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
     ['http://git.gitorious.org/epydial/epydial-new.git','master'],
     ['http://git.pyneo.org/browse/cgit/paroli','master'],
