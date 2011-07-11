@@ -36,7 +36,7 @@ class Gitbot(object):
         for row in self.cur:
             if row[0] == buzzword: 
                 content = (description, buzzword)
-                add = 'UPDATE facts SET description = ?, buzzword = ?'
+                add = 'UPDATE facts SET description = ? where buzzword = ?'
                 self.cur.execute(add, content)
                 self.con.commit()
                 self.sendChannel('Factoid %s updated' % (buzzword), connection, event)
