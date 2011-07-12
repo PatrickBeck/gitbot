@@ -106,12 +106,13 @@ class Gitbot(object):
         
         if msg.startswith('?'):
             word = msg.lstrip('?').split()
-            buzzword = word[0]
-            if len(word) == 2:
-                user = word[1]
-                self.outputfact(buzzword, connection, event, user)
-            else:
-                self.outputfact(buzzword, connection, event)
+            if len(word) != 0:
+                buzzword = word[0]
+                if len(word) == 2:
+                    user = word[1]
+                    self.outputfact(buzzword, connection, event, user)
+                else:
+                    self.outputfact(buzzword, connection, event)
 
     def gitupdate(self, git, repolist, connection, event):#, connection, event):#i, git, repolist):
         minute = time.strftime("%M%S",time.gmtime())
