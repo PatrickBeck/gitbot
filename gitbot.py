@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*- 
 
 # File: gitbot.py
-# Version: 1.2
+# Version: 1.2.1
 # Description: Prints updates of git repositorys to irc
 # Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
 # License: GPL3
