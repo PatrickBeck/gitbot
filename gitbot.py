@@ -28,6 +28,9 @@ class Gitbot(object):
             if irclib.is_channel(channel): # joins the channel when it exists
                 connection.join(channel)
 
+    def pong(self, connection, event):
+        connection.pong(event.target())
+
     def nicknameinuse(self, connection, event):
         connection.nick(connection.get_nickname() + "_") # when nickname in use add a _
 
@@ -150,7 +153,7 @@ class Gitbot(object):
         c.add_global_handler("welcome", self.connect)
         c.add_global_handler('nicknameinuse', self.nicknameinuse)
         c.add_global_handler('pubmsg', self.pubmsg)
-        
+        c.add_global_handler('ping', self.pong)
         while 1:
             self.gitupdate(git, repolist, c, c)
             irc.process_once()
