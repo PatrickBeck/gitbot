@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*- 
 
 # File: gitbot.py
-# Version: 1.2.1
+# Version: 1.2.2
 # Description: Prints updates of git repositorys to irc
 # Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
 # License: GPL3
@@ -157,6 +157,10 @@ class Gitbot(object):
         while 1:
             self.gitupdate(git, repolist, c, c)
             irc.process_once()
+
+            if not c.is_connected(): # reconnect if disconnect
+                self.connect(c, c)
+            
             time.sleep(0.02)
 
 
