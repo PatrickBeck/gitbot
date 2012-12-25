@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # File: gitcheck.py
@@ -121,12 +121,12 @@ class Gitcheck(object):
         command = 'git', 'fetch'
         getfetch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         fetch = getfetch.communicate()
+        self.switchback() # change back to the directory above - important to write the csv file
         if fetch[1]: # None when no error comes up
             print 'Can\'t fetch the git repository - Error:', fetch[1]
             return False # not possible to update the repo
         else:
             print 'origin repository for %s updated' % (repo)
-        self.switchback() # change back to the directory above - important to write the csv file
 
 
     def switchgitdir(self, repo):
@@ -245,32 +245,33 @@ class Gitcheck(object):
 if __name__ == '__main__': # function will only be called when you start the script directly
     
     repolist = [ # a list with all controlled repositorys
-    ['http://git.gitorious.org/epydial/epydial.git','master'],
-    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
+#    ['http://git.gitorious.org/epydial/epydial.git','master'],
+#    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
     ['http://git.gitorious.org/epydial/epydial-new.git','master'],
-    ['http://git.pyneo.org/browse/cgit/paroli','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
+#    ['http://git.pyneo.org/browse/cgit/paroli','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-pyaudiod','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
-    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
-    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
-    ['http://git.pyneo.org/browse/cgit/gllin','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
-    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
-    ['http://git.pyneo.org/browse/cgit/enlua','master'],
-    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
-    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
-    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
-    ['http://git.pyneo.org/browse/cgit/robots','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
+#    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
+#    ['http://git.pyneo.org/browse/cgit/gllin','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
+#    ['http://git.pyneo.org/browse/cgit/enlua','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
+#    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
+#    ['http://git.pyneo.org/browse/cgit/robots','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
+     ['https://git.gitorious.org/ecdial/ecdial.git','master'],
     ]
  
     
