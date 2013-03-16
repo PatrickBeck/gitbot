@@ -156,7 +156,6 @@ class Gitbot(object):
         c.add_global_handler('ping', self.pong)
         
         while 1:
-            self.gitupdate(git, repolist, c, c)
             irc.process_once()
 
             if not c.is_connected(): # reconnect if disconnect
@@ -165,6 +164,8 @@ class Gitbot(object):
                 except irclib.ServerConnectionError, x:
                     print x
                     sys.exit(1)
+            else:
+                self.gitupdate(git, repolist, c, c)
             
             time.sleep(0.02)
 
