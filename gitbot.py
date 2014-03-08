@@ -83,6 +83,9 @@ class Gitbot(object):
     def sendChannel(self, text, connection, event):
         connection.privmsg(event.target(), text)
 
+    def pubmsg2(self, connection, event):
+        print 'what happend'
+
     def pubmsg(self, connection, event):
         msg = event.arguments()[0]
         
@@ -90,7 +93,7 @@ class Gitbot(object):
             self.listfacts(connection, event)
         
         elif msg.startswith('!help'):
-            text = "Example for learning: !pyneo is a mobile framework, Example for read: ?pyneo, Example with username: ?pyneo PBeck - !facts gives a overview."
+            text = "Example for learning: !<word> <text>, Example for read: ?<word>, with user: ?<word> <user> - !facts gives a overview."
             self.sendChannel(text, connection, event)
 
         elif msg.startswith('!delete '): # space important
@@ -116,13 +119,22 @@ class Gitbot(object):
                     self.outputfact(buzzword, connection, event, user)
                 else:
                     self.outputfact(buzzword, connection, event)
-
-    def gitupdate(self, git, repolist, connection, event):#, connection, event):#i, git, repolist):
+        
+        if msg.lower().startswith('sha'):
+            text = "You have said SHA!!!"
+            self.sendChannel(text, connection, event)
+            word = msg.lower().lstrip('sha').split()
+            self.logs = self.git.getSHALog(self.repolist, word)
+            for channel in channels:
+                for update in self.logs:
+                    connection.privmsg(channel, update)
+                    time.sleep(2) # kick protection :)
+        
+    def gitupdate(self, connection, event):#, connection, event):#i, git, repolist):
         minute = time.strftime("%M%S",time.gmtime())
         if minute in ('0000','1500','3000','4500'):
             time.sleep(1)
-            self.updates = git.main(repolist)
-            self.sendmessage(connection, event)
+            self.updates = self.git.main(self.repolist)
 
     def sendmessage(self, connection, event):
             for channel in channels:
@@ -132,7 +144,8 @@ class Gitbot(object):
    
     def main(self, botname, channel, network, port, username, repolist, factsdb):
     
-        git = gitcheck.Gitcheck()
+        self.git = gitcheck.Gitcheck()
+        self.repolist = repolist
         updates = ()
 
         self.con = sqlite3.connect(factsdb)
@@ -154,27 +167,18 @@ class Gitbot(object):
         c.add_global_handler('nicknameinuse', self.nicknameinuse)
         c.add_global_handler('pubmsg', self.pubmsg)
         c.add_global_handler('ping', self.pong)
-        
+        c.add_global_handler('notonchannel', self.pubmsg2)
+        c.add_global_handler('kick', self.pubmsg2)
+
         while 1:
-            irc.process_once()
-
-            if not c.is_connected(): # reconnect if disconnect
-                try:
-                    c = irc.server().connect(network, port, botname, username=username)
-                except irclib.ServerConnectionError, x:
-                    print x
-                    sys.exit(1)
-            else:
-                self.gitupdate(git, repolist, c, c)
+            irc.process_once(timeout=10)
+            self.gitupdate(c, c)
             
-            time.sleep(0.02)
-
-
 if __name__ == '__main__':
     
     botname = '__pyneo'
     username = 'pyneo' # only alphanumerical characters
-    channels = ['#pyneo.org'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
+    channels = ['#dddd'] # you can add as much channels as you like => channels = ['channel1','channel2','channel3']
     network = 'chat.freenode.net'
     port = 6667
 
@@ -182,32 +186,33 @@ if __name__ == '__main__':
     factsdb = gitcheck.Gitcheck().absolutePath() + dbname # get the absolutepath for the database 
     
     repolist = [ # a list with all controlled repositorys
-    ['http://git.gitorious.org/epydial/epydial.git','master'],
-    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
-    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
-    ['http://git.pyneo.org/browse/cgit/paroli','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
+#    ['http://git.gitorious.org/epydial/epydial.git','master'],
+#    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
+#    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
+#    ['http://git.pyneo.org/browse/cgit/paroli','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-pyaudiod','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
-    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
-    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
-    ['http://git.pyneo.org/browse/cgit/gllin','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
-    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
-    ['http://git.pyneo.org/browse/cgit/enlua','master'],
-    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
-    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
-    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
-    ['http://git.pyneo.org/browse/cgit/robots','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
-    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
+#    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
+#    ['http://git.pyneo.org/browse/cgit/gllin','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
+#    ['http://git.pyneo.org/browse/cgit/enlua','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
+#    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
+#    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
+#    ['http://git.pyneo.org/browse/cgit/robots','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
+#    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
+    ['https://git.gitorious.org/ecdial/ecdial.git','master'],
     ]
 
     bot = Gitbot()
