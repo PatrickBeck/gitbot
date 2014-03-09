@@ -120,10 +120,10 @@ class Gitbot(object):
                 else:
                     self.outputfact(buzzword, connection, event)
         
-        if msg.lower().startswith('sha'):
+        if msg.lower().startswith('sha-'):
             text = "You have said SHA!!!"
             self.sendChannel(text, connection, event)
-            word = msg.lower().lstrip('sha').split()
+            word = msg.lower().replace('sha-','').split()
             self.logs = self.git.getSHALog(self.repolist, word)
             for channel in channels:
                 for update in self.logs:
@@ -171,8 +171,9 @@ class Gitbot(object):
         c.add_global_handler('kick', self.pubmsg2)
 
         while 1:
-            irc.process_once(timeout=10)
+            irc.process_once()
             self.gitupdate(c, c)
+            time.sleep(1)
             
 if __name__ == '__main__':
     

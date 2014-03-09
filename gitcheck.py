@@ -56,7 +56,6 @@ class Gitcheck(object):
             file.write(i)
         file.close
             
-
     def cleanFile(self, repolist):
         file = open(self.data, 'r')
         content = file.readlines() # get the whole content of repos.csv
@@ -116,7 +115,7 @@ class Gitcheck(object):
         command = 'git', 'fetch'
         getfetch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         fetch = getfetch.communicate()
-        self.switchback() # change back to the directory above - important to write the csv file
+        self.switchgitdir(repo) # change back to the directory above - important to write the csv file
         if fetch[1]: # None when no error comes up
             print 'Can\'t fetch the git repository - Error:', fetch[1]
             return False # not possible to update the repo
@@ -125,11 +124,12 @@ class Gitcheck(object):
 
 
     def switchgitdir(self, repo):
+        '''Switch in git repo dir and back, when already inside'''
         repodir = self.getDir(repo)
         if os.path.isdir(repodir): # exists the dir?
             os.chdir(repodir) # change dir
         else:
-            print 'Can\'t change the directory to %s, directory not exists' % (repo) 
+            os.chdir(self.absolutePath()) # change back to main directory
 
     
     def switchbranch(self, branch):
@@ -141,17 +141,13 @@ class Gitcheck(object):
         else:
             print 'branch to %s switched' % (branch)
 		
-    def switchback(self):
-        os.chdir('..') # change back to the directory above
-
-
     def getserverrevision(self, repo, branch):
         self.switchgitdir(repo)
         self.switchbranch(branch)
         command = 'git', 'log', 'origin', '-1'
         getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         log = getlog.communicate()
-        self.switchback() # change back to the directory above
+        self.switchgitdir(repo) # change back to the directory above
         if log[1]: # error check
             print 'An error occured - Error:', log[1]
         else:
@@ -187,7 +183,8 @@ class Gitcheck(object):
                     update.append(entry[4][4:]) # logmessage
 #                    update.append(entry[6:]) # action # to much output
                     allupdates.append(update)
-        self.switchback()
+        self.switchgitdir(repo)
+        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
         allupdates.reverse()
         return allupdates
 
@@ -233,7 +230,7 @@ class Gitcheck(object):
                     update.append(entry[4][4:]) # logmessage
 #                    update.append(entry[6:]) # action # to much output
                     allupdates.append(update)
-        self.switchback()
+        self.switchgitdir(repo)
         allupdates.reverse()
         return allupdates
 
@@ -281,7 +278,6 @@ class Gitcheck(object):
                     allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                     updates.append(allupdates)
         
-            self.changefile(i[0], i[1], server) # write the server version to the file (for the next run of this script)
         
         if os.path.isfile(self.data): # have to be called after the new written csv file
             self.cleanFile(repolist) # clean the directory or csv file
