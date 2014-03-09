@@ -272,7 +272,7 @@ class Gitcheck(object):
             
             last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
             server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
-            
+            print last,server
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
                 for i in up:

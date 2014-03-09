@@ -132,7 +132,7 @@ class Gitbot(object):
         
     def gitupdate(self, connection, event):#, connection, event):#i, git, repolist):
         minute = time.strftime("%M%S",time.gmtime())
-        if minute in ('0000','1700','3000','4500'):
+        if minute in ('0000','1700','3000','4800'):
             time.sleep(1)
             self.updates = self.git.main(self.repolist)
             self.sendmessage(connection, event)
