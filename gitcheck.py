@@ -129,6 +129,7 @@ class Gitcheck(object):
         if os.path.isdir(repodir): # exists the dir?
             os.chdir(repodir) # change dir
         else:
+            print 'Can\'t change the directory to %s, directory not exists' % (repo)
             os.chdir(self.absolutePath()) # change back to main directory
 
     
