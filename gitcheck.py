@@ -127,10 +127,11 @@ class Gitcheck(object):
         '''Switch in git repo dir and back, when already inside'''
         repodir = self.getDir(repo)
         if os.path.isdir(repodir): # exists the dir?
-            os.chdir(repodir) # change dir
+            os.chdir(repodir) # change dir # change dir
+            print 'Switch into %s' % (repodir)
         else:
-            print 'Can\'t change the directory to %s, directory not exists' % (repo)
-            os.chdir(self.absolutePath()) # change back to main directory
+            print 'Switch back to %s' % (self.absolute)
+            os.chdir(self.absolute) # change back to main directory
 
     
     def switchbranch(self, branch):
@@ -236,7 +237,7 @@ class Gitcheck(object):
         return allupdates
 
     def getSHALog(self, repolist, sha):
-        os.chdir(self.absolutePath()) # get into the right directory
+        os.chdir(self.absolute) # get into the right directory
         self.data = 'repos.csv' # file for saving the data
 
         if os.path.isfile(self.data):
@@ -256,7 +257,8 @@ class Gitcheck(object):
         return updates
 
     def main(self, repolist):
-        os.chdir(self.absolutePath()) # get into the right directory
+        self.absolute = self.absolutePath() # get into the right directory
+        os.chdir(self.absolute) # get into the right directory
         self.data = 'repos.csv' # file for saving the data
         
         if os.path.isfile(self.data):
@@ -272,7 +274,7 @@ class Gitcheck(object):
             
             last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
             server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
-            print last,server
+            
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
                 for i in up:
@@ -289,7 +291,7 @@ if __name__ == '__main__': # function will only be called when you start the scr
     repolist = [ # a list with all controlled repositorys
 #    ['http://git.gitorious.org/epydial/epydial.git','master'],
 #    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
-    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
+#    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
 #    ['http://git.pyneo.org/browse/cgit/paroli','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
 #    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
