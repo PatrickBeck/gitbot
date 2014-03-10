@@ -159,36 +159,25 @@ class Gitcheck(object):
     def getlastrevision(self, repo, branch):
         revision = self.readfile(repo, branch) 
         return revision
-            
-    def getlog(self, last, server, repo, branch):
-        self.switchgitdir(repo)
-        self.switchbranch(branch)
-        allupdates = [] # a empty list for all logs [[log1], [log2], ...]
-        if last == None:
-            pass
-        else:
-            command = 'git', '--no-pager', 'log', last + '..' +  server, '--stat'
-            getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            log = getlog.communicate()
-            if log[1]: # error check
-                print 'An Error occured - Error:', log[1]
-            else:
-                logmessage = log[0].split('commit') # split the big string into several log messages
-                for log in logmessage[1:]:
-                    entry = log.split('\n') # split the log message into his content
-                    update = [] # a empty list for one log [repo, branch, author, date, commit, logmessage, action]
-                    update.append(self.getDir(repo)) # repo
-                    update.append(branch) # branch
-                    update.append(entry[1][8:].split(' <')[0]) # author (get only the name without email)
-                    update.append(entry[2][8:32]) # date
-                    update.append(entry[0][1:-30] + '...') # commit (only the first ten characters)
-                    update.append(entry[4][4:]) # logmessage
-#                    update.append(entry[6:]) # action # to much output
-                    allupdates.append(update)
-        self.switchgitdir(repo)
-        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
-        allupdates.reverse()
-        return allupdates
+     
+    def formatlog(self, log, repo, branch):
+        allmessages = []
+        logmessage = log[0].split('commit') # split the big string into several log messages
+        for log in logmessage[1:]:
+            entry = log.split('\n') # split the log message into his content
+            message = [] # a empty list for one log [repo, branch, author, date, commit, logmessage, action]
+            message.append(self.getDir(repo)) # repo
+            message.append(branch) # branch
+            message.append(entry[1][8:].split(' <')[0]) # author (get only the name without email)
+            message.append(entry[2][8:32]) # date
+            message.append(entry[0][1:-30] + '...') # commit (only the first ten characters)
+            message.append(entry[4][4:]) # logmessage
+#           update.append(entry[6:]) # action # to much output
+            allmessages.append(message)
+            print allmessages
+        return allmessages
+       
+
 
     def getDir(self, giturl):
         gitdir = giturl.strip('/').split('/')[-1].replace('.git', '')
@@ -207,66 +196,69 @@ class Gitcheck(object):
             scriptDir = '%s/%s' % (workingDir, pathToFile) # create the absolute path out of the relative one
         return scriptDir
 
-    def getlog2(self, last, server, repo, branch):
+    def getlog4sha(self, sha, repo, branch):
+        self.switchgitdir(repo)
+        self.switchbranch(branch)
+        allupdates = [] # a empty list for all logs [[log1], [log2], ...]
+        
+        if sha == None:
+            pass
+        else:
+
+            if '..' in sha: # range of logs
+                sha = sha.split('..')
+                command = 'git', '--no-pager', 'log', sha[0] + '..' +  sha[1], '--stat'
+            else:
+                command = 'git', '--no-pager', 'log', '-1', sha, '--stat'
+            getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            log = getlog.communicate()
+            if log[1]: # error check
+                print 'An Error occured - Error:', log[1]
+            else:
+                allupdates = self.formatlog(log, repo, branch)
+        
+        self.switchgitdir(repo)
+        allupdates.reverse()
+        return allupdates
+
+    def getlog(self, last, server, repo, branch):
         self.switchgitdir(repo)
         self.switchbranch(branch)
         allupdates = [] # a empty list for all logs [[log1], [log2], ...]
         if last == None:
             pass
         else:
-            command = 'git', '--no-pager', 'log', '-1', last, '--stat'
+            command = 'git', '--no-pager', 'log', last + '..' +  server, '--stat'
             getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log = getlog.communicate()
             if log[1]: # error check
                 print 'An Error occured - Error:', log[1]
             else:
-                logmessage = log[0].split('commit') # split the big string into several log messages
-                for log in logmessage[1:]:
-                    entry = log.split('\n') # split the log message into his content
-                    update = [] # a empty list for one log [repo, branch, author, date, commit, logmessage, action]
-                    update.append(self.getDir(repo)) # repo
-                    update.append(branch) # branch
-                    update.append(entry[1][8:].split(' <')[0]) # author (get only the name without email)
-                    update.append(entry[2][8:32]) # date
-                    update.append(entry[0][1:-30] + '...') # commit (only the first ten characters)
-                    update.append(entry[4][4:]) # logmessage
-#                    update.append(entry[6:]) # action # to much output
-                    allupdates.append(update)
+                allupdates = self.formatlog(log, repo, branch)
+        
         self.switchgitdir(repo)
+        self.changefile(repo, branch, server) # write the server version to the file (for the next run of this script)
         allupdates.reverse()
         return allupdates
 
     def getSHALog(self, repolist, sha):
-        os.chdir(self.absolute) # get into the right directory
-        self.data = 'repos.csv' # file for saving the data
-
-        if os.path.isfile(self.data):
-            if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
-                print 'No Repositorys added'
-                self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
-                sys.exit(0)
-        
         updates = []
         for i in repolist:
             if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
                 continue # when the repo is not reachable, skip the defect one
-            log = self.getlog2(sha[0], sha[0], i[0], i[1]) # get the output of the log
+            
+            if '..' in sha: # range of logs
+                sha = sha.split('..')
+                log = self.getlog4sha(sha[0], i[0], i[1]) # get the output of the log
+            else:
+                log = self.getlog4sha(sha[0], i[0], i[1]) # get the output of the log
+            
             for i in log:
                 allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                 updates.append(allupdates)
         return updates
 
     def main(self, repolist):
-        self.absolute = self.absolutePath() # get into the right directory
-        os.chdir(self.absolute) # get into the right directory
-        self.data = 'repos.csv' # file for saving the data
-        
-        if os.path.isfile(self.data):
-            if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
-                print 'No Repositorys added'
-                self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
-                sys.exit(0)
-        
         updates = []
         for i in repolist:
             if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
@@ -274,18 +266,32 @@ class Gitcheck(object):
             
             last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
             server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
-            
+            print last, server 
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
+                print up
                 for i in up:
                     allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                     updates.append(allupdates)
-        
-        
-        if os.path.isfile(self.data): # have to be called after the new written csv file
-            self.cleanFile(repolist) # clean the directory or csv file
         return updates
-                
+        
+        
+#        if os.path.isfile(self.data): # have to be called after the new written csv file
+#           self.cleanFile(repolist) # clean the directory or csv file
+
+    def __init__(self):
+        
+        self.absolute = self.absolutePath() # get into the right directory
+        self.data = 'repos.csv' # file for saving the data
+        
+        os.chdir(self.absolute) # get into the right directory
+        
+#        if os.path.isfile(self.data):
+#            if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
+#                print 'No Repositorys added'
+#                self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
+#                sys.exit(0)
+ 
 if __name__ == '__main__': # function will only be called when you start the script directly
     
     repolist = [ # a list with all controlled repositorys
