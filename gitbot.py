@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*- 
 
 # File: gitbot.py
-# Version: 1.2.3
+# Version: 1.2.4
 # Description: Prints updates of git repositorys to irc
 # Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
 # License: GPL3
@@ -77,27 +77,26 @@ class Gitbot(object):
         for row in self.cur:
             words.append(row[0])
         text = 'Saved facts - '+', '.join(words)
-        self.sendChannel(text, connection, event)
-            
+        self.sendChannel(text, connection, event)             
 
-    def sendChannel(self, text, connection, event):
-        connection.privmsg(event.target(), text)
-
-    def pubmsg2(self, connection, event):
-        print 'what happend'
+    def sendChannel(self, text, connection, event, channel=None):
+        if channel:
+            connection.privmsg(channel, text) # event.target == target channel in irc
+        else:
+            connection.privmsg(event.target(), text) # event.target == target channel in irc
 
     def pubmsg(self, connection, event):
         msg = event.arguments()[0]
         
         if msg.startswith('!facts'):
             self.listfacts(connection, event)
-        
+
         elif msg.startswith('!help'):
             text = "Example for learning: !<word> <text>, Example for read: ?<word>, with user: ?<word> <user> - !facts gives a overview."
             self.sendChannel(text, connection, event)
 
         elif msg.startswith('!delete '): # space important
-            word = msg.lstrip('!').split() # space important
+            word = msg.lstrip('!').split()
             if len(word) == 2:
                 buzzword = word[1]
                 self.deletefact(buzzword, connection, event)
@@ -121,61 +120,69 @@ class Gitbot(object):
                     self.outputfact(buzzword, connection, event)
         
         if msg.lower().startswith('sha-'):
-            text = "You have said SHA!!!"
-            self.sendChannel(text, connection, event)
             word = msg.lower().replace('sha-','').split()
-            self.logs = self.git.getSHALog(self.repolist, word)
+            logs = self.git.getSHALog(self.repolist, word)
+            
             for channel in channels:
-                for update in self.logs:
-                    connection.privmsg(channel, update)
+                for update in logs:
+                    self.sendChannel(update, connection, event, channel)
                     time.sleep(2) # kick protection :)
         
-    def gitupdate(self, connection, event):#, connection, event):#i, git, repolist):
-        minute = time.strftime("%M%S",time.gmtime())
-        if minute in ('0000','1700','3800','5400'):
-            time.sleep(1)
-            self.updates = self.git.main(self.repolist)
-            self.sendmessage(connection, event)
+    def gitupdate(self):
 
-    def sendmessage(self, connection, event):
+        minute = time.strftime("%M%S",time.gmtime())
+        if minute in ('0000','1500','3000','4500'):
+            time.sleep(1)
+            updates = self.git.main()
             for channel in channels:
-                for update in self.updates:
-                    connection.privmsg(channel, update)
+                for update in updates:
+                    self.sendChannel(update, connection, event, channel)
                     time.sleep(2) # kick protection :)
    
-    def main(self, botname, channel, network, port, username, repolist, factsdb):
+    def main(self):
     
-        self.git = gitcheck.Gitcheck()
+        while 1:
+        
+            try:
+                if not self.c.is_connected():
+                    self.c()
+            
+            except irclib.ServerConnectionError, x:
+                print x
+                sys.exit(1)
+
+            self.irc.process_once()
+            self.gitupdate()
+            time.sleep(1)
+
+    def __init__(self, botname, channels, network, port, username, repolist, dbname):
+        self.git = gitcheck.Gitcheck(repolist)
+        factsdb = self.git.absolutePath() + dbname # get the absolutepath for the database 
         self.repolist = repolist
-        updates = ()
 
         self.con = sqlite3.connect(factsdb)
         self.con.text_factory = str
         self.cur = self.con.cursor()
+        
         try:
             self.cur.execute('''CREATE TABLE facts(buzzword TEXT, description TEXT)''')
         except:
             print 'Database already exists'
 
-        irc = irclib.IRC()
+        self.irc = irclib.IRC()
+        
         try:
-            c = irc.server().connect(network, port, botname, username=username)
+            self.c = self.irc.server().connect(network, port, botname, username=username)
         except irclib.ServerConnectionError, x:
             print x
             sys.exit(1)
         
-        c.add_global_handler("welcome", self.connect)
-        c.add_global_handler('nicknameinuse', self.nicknameinuse)
-        c.add_global_handler('pubmsg', self.pubmsg)
-        c.add_global_handler('ping', self.pong)
-        c.add_global_handler('notonchannel', self.pubmsg2)
-        c.add_global_handler('kick', self.pubmsg2)
+        self.c.add_global_handler("welcome", self.connect)
+        self.c.add_global_handler('nicknameinuse', self.nicknameinuse)
+        self.c.add_global_handler('pubmsg', self.pubmsg)
+        self.c.add_global_handler('ping', self.pong)
+        self.c.add_global_handler('kick', self.connect)
 
-        while 1:
-            irc.process_once()
-            self.gitupdate(c, c)
-            time.sleep(1)
-            
 if __name__ == '__main__':
     
     botname = '__pyneo'
@@ -185,7 +192,6 @@ if __name__ == '__main__':
     port = 6667
 
     dbname = "facts.db" # database for saving the facts 
-    factsdb = gitcheck.Gitcheck().absolutePath() + dbname # get the absolutepath for the database 
     
     repolist = [ # a list with all controlled repositorys
 #    ['http://git.gitorious.org/epydial/epydial.git','master'],
@@ -217,5 +223,5 @@ if __name__ == '__main__':
     ['https://git.gitorious.org/ecdial/ecdial.git','master'],
     ]
 
-    bot = Gitbot()
-    bot.main(botname, channels, network, port, username, repolist, factsdb)
+    bot = Gitbot(botname, channels, network, port, username, repolist, dbname)
+    bot.main()

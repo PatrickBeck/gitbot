@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # File: gitcheck.py
-# Version: 1.1
+# Version: 1.2
 # Description: a few functions to check for updates in a git repo and return a log of the changes.
 # Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
 # License: GPL3
@@ -25,6 +25,7 @@ import shutil
 class Gitcheck(object):
 
     def readfile(self, repo, branch):
+        '''Returns the sha, out of the *.csv file'''
         if os.path.isfile(self.data):
             file = csv.reader(open(self.data, 'r'), delimiter=',') # file to save the revision number
             for i in file:
@@ -36,11 +37,13 @@ class Gitcheck(object):
         print 'New repo in csv file added - %s on %s' % (repo, branch)
         
     def writefile(self, repo, branch, revision): # for new entrys only and if the new file are created
+        '''Helper for changefile. Will write into file.'''
         file = open(self.data, 'a')
         file.write('%s,%s,%s\n' % (repo,branch,revision)) 
         file.close
 
     def changefile(self, repo, branch, revision): # to change the sha - update the file / rewrite it
+        '''Updates or creates the *.csv file with repo,branch,sha. for last revision check.'''
         file = open(self.data, 'r')
         fileContent = []
         while 1:
@@ -57,6 +60,7 @@ class Gitcheck(object):
         file.close
             
     def cleanFile(self, repolist):
+        '''Cleans up the *.csv file, when repositorys are removed out of the repolist.'''
         file = open(self.data, 'r')
         content = file.readlines() # get the whole content of repos.csv
         if repolist == []: # the part for deleting all content (csv file and old dirs), when no repo is set.
@@ -90,6 +94,7 @@ class Gitcheck(object):
         
                 
     def cleanDir(self, repo):
+        '''Cleans up the directory, when some repositorys are removed out of the repolist.'''
         gitdir = self.getDir(repo)
         if os.path.isdir(gitdir):
             shutil.rmtree(gitdir) # delete the directory of the repository
@@ -97,6 +102,7 @@ class Gitcheck(object):
 
             
     def clone(self, repo):
+        '''Creates a new local repository out of the remote git url'''
         gitdir = self.getDir(repo)
         if os.path.isdir(gitdir): # check if the dir exists
             pass # do nothing
@@ -111,6 +117,7 @@ class Gitcheck(object):
                 print 'Repository %s cloned' % (repo)
 
     def fetch(self, repo):
+        '''Downloads updates of a remote git repository (will be not merged)'''
         self.switchgitdir(repo)
         command = 'git', 'fetch'
         getfetch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -135,6 +142,7 @@ class Gitcheck(object):
 
     
     def switchbranch(self, branch):
+        '''Switch in branch - you have to select first the gitdir with switchgitdir()'''
         command = 'git', 'checkout', branch
         switchingbranch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         branchswitched = switchingbranch.communicate()
@@ -144,6 +152,7 @@ class Gitcheck(object):
             print 'branch to %s switched' % (branch)
 		
     def getserverrevision(self, repo, branch):
+        '''Get the current git revision out of repo and branch, selectable with switchgitdir and switchbranch'''
         self.switchgitdir(repo)
         self.switchbranch(branch)
         command = 'git', 'log', 'origin', '-1'
@@ -157,10 +166,12 @@ class Gitcheck(object):
             return revision
                                                            
     def getlastrevision(self, repo, branch):
+        '''Get the last saved revision out of a *.csv file, with repo and branch'''
         revision = self.readfile(repo, branch) 
         return revision
      
     def formatlog(self, log, repo, branch):
+        '''Format the output of git log'''
         allmessages = []
         logmessage = log[0].split('commit') # split the big string into several log messages
         for log in logmessage[1:]:
@@ -180,10 +191,12 @@ class Gitcheck(object):
 
 
     def getDir(self, giturl):
+        '''Returns the directory name out of the git adress in web'''
         gitdir = giturl.strip('/').split('/')[-1].replace('.git', '')
         return gitdir
 
     def absolutePath(self):
+        '''Returns the absolute Path to the main directory of this file'''
         workingDir = os.getcwd() # get the current directory
         appName = sys.argv[0].split('/')[-1] # get the application name
         pathToFile = sys.argv[0].rstrip(appName) # extract the path from the current dir to the app - and exclude the application name
@@ -210,6 +223,7 @@ class Gitcheck(object):
                 command = 'git', '--no-pager', 'log', sha[0] + '..' +  sha[1], '--stat'
             else:
                 command = 'git', '--no-pager', 'log', '-1', sha, '--stat'
+            print command
             getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             log = getlog.communicate()
             if log[1]: # error check
@@ -247,20 +261,16 @@ class Gitcheck(object):
             if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
                 continue # when the repo is not reachable, skip the defect one
             
-            if '..' in sha: # range of logs
-                sha = sha.split('..')
-                log = self.getlog4sha(sha[0], i[0], i[1]) # get the output of the log
-            else:
-                log = self.getlog4sha(sha[0], i[0], i[1]) # get the output of the log
+            log = self.getlog4sha(sha[0], i[0], i[1]) # get the output of the log
             
-            for i in log:
+            for i in log[0:5]: #limit to 5 logs per request. 
                 allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                 updates.append(allupdates)
         return updates
 
-    def main(self, repolist):
+    def main(self):
         updates = []
-        for i in repolist:
+        for i in self.repolist:
             if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
                 continue # when the repo is not reachable, skip the defect one
             
@@ -275,22 +285,16 @@ class Gitcheck(object):
                     updates.append(allupdates)
         return updates
         
+    def __init__(self, repolist):
         
-#        if os.path.isfile(self.data): # have to be called after the new written csv file
-#           self.cleanFile(repolist) # clean the directory or csv file
-
-    def __init__(self):
-        
+        self.repolist = repolist
         self.absolute = self.absolutePath() # get into the right directory
         self.data = 'repos.csv' # file for saving the data
         
         os.chdir(self.absolute) # get into the right directory
         
-#        if os.path.isfile(self.data):
-#            if repolist == []: # when no repo set - clean the directory (old files), print a message and exit the script
-#                print 'No Repositorys added'
-#                self.cleanFile(repolist) # for deleting the csv file and directorys - cleaning
-#                sys.exit(0)
+        if os.path.isfile(self.data): # have to be called after the new written csv file
+           self.cleanFile(repolist) # clean the directory or csv file
  
 if __name__ == '__main__': # function will only be called when you start the script directly
     
