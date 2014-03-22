@@ -16,6 +16,7 @@
 # This script is intended for run as a background process the whole time - when you only want a script use the Version 1.0.1.
 
 import sys
+import string
 import time
 import sqlite3
 import irclib
@@ -106,7 +107,6 @@ class Gitbot(object):
             if len(word) > 1:
                 buzzword = word[0]
                 descriptions = ' '.join(word[1:])
-                print descriptions
                 self.learnfact(buzzword, descriptions, connection, event)
         
         if msg.startswith('?'):
@@ -119,14 +119,23 @@ class Gitbot(object):
                 else:
                     self.outputfact(buzzword, connection, event)
         
-        if msg.lower().startswith('sha-'):
-            word = msg.lower().replace('sha-','').split()
-            logs = self.git.getSHALog(self.repolist, word)
-            
-            for channel in channels:
-                for update in logs:
-                    self.sendChannel(update, connection, event, channel)
-                    time.sleep(2) # kick protection :)
+        if msg.lower().startswith('!sha-'):
+            word = msg.lower().replace('!sha-','').split()
+            if word: # not empty
+                whitelist = whitelist = string.letters + string.digits + '..'
+                save_word=''.join(c for c in word[0] if c in whitelist) # only first word (word[0], with split)
+
+                if '..' in save_word: # get a list of the SHAs
+                    sha = save_word.split('..')
+                    logs = self.git.getSHALog(self.repolist, sha[0:2]) # only first and second sha (only a comparision)
+                else:
+                    sha = save_word.split() # get all in list, also when its only one
+                    logs = self.git.getSHALog(self.repolist, sha)
+                
+                for channel in channels:
+                    for update in logs:
+                        self.sendChannel(update, connection, event, channel)
+                        time.sleep(2) # kick protection :)
         
     def gitupdate(self):
 
@@ -136,7 +145,7 @@ class Gitbot(object):
             updates = self.git.main()
             for channel in channels:
                 for update in updates:
-                    self.sendChannel(update, connection, event, channel)
+                    self.sendChannel(update, self.c, self.c, channel)
                     time.sleep(2) # kick protection :)
    
     def main(self):
@@ -194,33 +203,8 @@ if __name__ == '__main__':
     dbname = "facts.db" # database for saving the facts 
     
     repolist = [ # a list with all controlled repositorys
-#    ['http://git.gitorious.org/epydial/epydial.git','master'],
-#    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
-#    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
-#    ['http://git.pyneo.org/browse/cgit/paroli','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pyaudiod','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
-#    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
-#    ['http://git.pyneo.org/browse/cgit/gllin','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
-#    ['http://git.pyneo.org/browse/cgit/enlua','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
-#    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
-#    ['http://git.pyneo.org/browse/cgit/robots','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
     ['https://git.gitorious.org/ecdial/ecdial.git','master'],
+    ['https://git.gitorious.org/hotornot/hotornot.git','master'],
     ]
 
     bot = Gitbot(botname, channels, network, port, username, repolist, dbname)

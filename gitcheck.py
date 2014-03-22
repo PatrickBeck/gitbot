@@ -126,8 +126,8 @@ class Gitcheck(object):
         if fetch[1]: # None when no error comes up
             print 'Can\'t fetch the git repository - Error:', fetch[1]
             return False # not possible to update the repo
-        else:
-            print 'origin repository for %s updated' % (repo)
+#        else:
+#            print 'origin repository for %s updated' % (repo)
 
 
     def switchgitdir(self, repo):
@@ -135,9 +135,9 @@ class Gitcheck(object):
         repodir = self.getDir(repo)
         if os.path.isdir(repodir): # exists the dir?
             os.chdir(repodir) # change dir # change dir
-            print 'Switch into %s' % (repodir)
+#            print 'Switch into %s' % (repodir)
         else:
-            print 'Switch back to %s' % (self.absolute)
+#            print 'Switch back to %s' % (self.absolute)
             os.chdir(self.absolute) # change back to main directory
 
     
@@ -146,10 +146,10 @@ class Gitcheck(object):
         command = 'git', 'checkout', branch
         switchingbranch = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         branchswitched = switchingbranch.communicate()
-        if branchswitched[0]: # None when no error comes up
-            print '%s - Branch to %s switched' % (branchswitched[0], branch)
-        else:
-            print 'branch to %s switched' % (branch)
+#        if branchswitched[0]: # None when no error comes up
+#            print '%s - Branch to %s switched' % (branchswitched[0], branch)
+#        else:
+#           print 'branch to %s switched' % (branch)
 		
     def getserverrevision(self, repo, branch):
         '''Get the current git revision out of repo and branch, selectable with switchgitdir and switchbranch'''
@@ -185,11 +185,9 @@ class Gitcheck(object):
             message.append(entry[4][4:]) # logmessage
 #           update.append(entry[6:]) # action # to much output
             allmessages.append(message)
-            print allmessages
+#            print allmessages
         return allmessages
        
-
-
     def getDir(self, giturl):
         '''Returns the directory name out of the git adress in web'''
         gitdir = giturl.strip('/').split('/')[-1].replace('.git', '')
@@ -209,33 +207,44 @@ class Gitcheck(object):
             scriptDir = '%s/%s' % (workingDir, pathToFile) # create the absolute path out of the relative one
         return scriptDir
 
+    def checkSHA(self, sha):
+        '''Helper function to check if the SHA can be correct (decode to int)'''
+        try:
+            int(sha,16)
+            return sha
+        except ValueError:
+#            print 'Not a correct sha', sha
+            return None
+
     def getlog4sha(self, sha, repo, branch):
+        '''Returns the commit logs according to a sha (a list of one or two elements) for a range in a repo.'''
         self.switchgitdir(repo)
         self.switchbranch(branch)
         allupdates = [] # a empty list for all logs [[log1], [log2], ...]
         
-        if sha == None:
-            pass
-        else:
+        for i in sha:
+            check = self.checkSHA(i)
+            if not check: # if checkSHA() returns None - not a correct sha
+                self.switchgitdir(repo)
+                return None # break 
+        
+        if len(sha) == 2:
+            command = 'git', '--no-pager', 'log', sha[0] + '..' +  sha[1], '--stat'
+        else: 
+            command = 'git', '--no-pager', 'log', '-1', sha[0], '--stat'
 
-            if '..' in sha: # range of logs
-                sha = sha.split('..')
-                command = 'git', '--no-pager', 'log', sha[0] + '..' +  sha[1], '--stat'
-            else:
-                command = 'git', '--no-pager', 'log', '-1', sha, '--stat'
-            print command
-            getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            log = getlog.communicate()
-            if log[1]: # error check
-                print 'An Error occured - Error:', log[1]
-            else:
-                allupdates = self.formatlog(log, repo, branch)
+        getlog = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log = getlog.communicate()
+                    
+        if not log[1]: # Check if no error comes up (sha not in repo or something else)
+            allupdates = self.formatlog(log, repo, branch)
         
         self.switchgitdir(repo)
         allupdates.reverse()
         return allupdates
 
     def getlog(self, last, server, repo, branch):
+        '''Returns the commit logs for a range in a repo'''
         self.switchgitdir(repo)
         self.switchbranch(branch)
         allupdates = [] # a empty list for all logs [[log1], [log2], ...]
@@ -256,19 +265,21 @@ class Gitcheck(object):
         return allupdates
 
     def getSHALog(self, repolist, sha):
+        ''' Checks for commit log with a sha. Repos set in repolist'''
         updates = []
         for i in repolist:
             if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
                 continue # when the repo is not reachable, skip the defect one
             
-            log = self.getlog4sha(sha[0], i[0], i[1]) # get the output of the log
-            
-            for i in log[0:5]: #limit to 5 logs per request. 
-                allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
-                updates.append(allupdates)
+            log = self.getlog4sha(sha, i[0], i[1]) # get the output of the log
+            if log: 
+                for i in log[0:5]: #limit to 5 logs per request. 
+                    allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
+                    updates.append(allupdates)
         return updates
 
     def main(self):
+        '''Checks for updates in git repos. Repos set in repolist'''
         updates = []
         for i in self.repolist:
             if self.clone(i[0]) or self.fetch(i[0]) == False: # clone the repo it not clones, update the origin remote
@@ -276,10 +287,8 @@ class Gitcheck(object):
             
             last = self.getlastrevision(i[0],i[1]) # get the last revision out of the csv file
             server = self.getserverrevision(i[0],i[1]) # get the current revision from the server
-            print last, server 
             if last != server: # check if the repo has new commits
                 up = self.getlog(last, server, i[0], i[1]) # get the output of the log
-                print up
                 for i in up:
                     allupdates = '[%s / %s] %s at %s on %s [%s]' % (i[0], i[1], i[2], i[3], i[4], i[5]) #, i[6]) # to much output
                     updates.append(allupdates)
@@ -293,44 +302,19 @@ class Gitcheck(object):
         
         os.chdir(self.absolute) # get into the right directory
         
-        if os.path.isfile(self.data): # have to be called after the new written csv file
-           self.cleanFile(repolist) # clean the directory or csv file
+        if os.path.isfile(self.data): 
+           self.cleanFile(repolist) # clean the directory and csv file
  
 if __name__ == '__main__': # function will only be called when you start the script directly
     
     repolist = [ # a list with all controlled repositorys
-#    ['http://git.gitorious.org/epydial/epydial.git','master'],
-#    ['http://git.gitorious.org/epydial/epydial.git','pyneo-1.32'],
-#    ['http://git.gitorious.org/epydial/epydial-new.git','master'],
-#    ['http://git.pyneo.org/browse/cgit/paroli','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pyneod','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pybankd','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pyrssd','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pyaudiod','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zad','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-pyneo','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-resolvconf','master'],
-#    ['http://git.pyneo.org/browse/cgit/gsm0710muxd','master'],
-#    ['http://git.pyneo.org/browse/cgit/gllin','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-pygsmd','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-ijon','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadthemes','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-gentoo','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-debian','master'],
-#    ['http://git.pyneo.org/browse/cgit/enlua','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-aqbanking','master'],
-#    ['http://git.pyneo.org/browse/cgit/python-directfb','master'],
-#    ['http://git.pyneo.org/browse/cgit/bwbasic','master'],
-#    ['http://git.pyneo.org/browse/cgit/robots','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadosk','master'],
-#    ['http://git.pyneo.org/browse/cgit/pyneo-zadwm','master'],
      ['https://git.gitorious.org/ecdial/ecdial.git','master'],
+     ['https://git.gitorious.org/hotornot/hotornot.git','master'],
     ]
  
     
-    check = Gitcheck()
-    updates = check.main(repolist)
+    check = Gitcheck(repolist)
+    updates = check.main()
     if updates == []:
         print 'No Updates'
     else:
