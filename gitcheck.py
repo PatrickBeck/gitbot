@@ -4,7 +4,7 @@
 # File: gitcheck.py
 # Version: 1.2
 # Description: a few functions to check for updates in a git repo and return a log of the changes.
-# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
+# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2014
 # License: GPL3
 
 # git musst be installed to work with this script

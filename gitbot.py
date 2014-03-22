@@ -4,7 +4,7 @@
 # File: gitbot.py
 # Version: 1.2.4
 # Description: Prints updates of git repositorys to irc
-# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2011
+# Author: Patrick Beck (pbeck at yourse dot de) Copyright 2014
 # License: GPL3
 
 # gitbot.py uses the gitcheck.py library to generate the messages
