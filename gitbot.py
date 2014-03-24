@@ -162,7 +162,7 @@ class Gitbot(object):
 
             self.irc.process_once()
             self.gitupdate()
-            time.sleep(1)
+            time.sleep(0.02)
 
     def __init__(self, botname, channels, network, port, username, repolist, dbname):
         self.git = gitcheck.Gitcheck(repolist)
